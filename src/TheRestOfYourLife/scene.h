@@ -18,29 +18,24 @@
 class scene {
   public:
     void render() {
-        const int image_height = static_cast<int>(image_width / aspect_ratio);
+        const int image_height = static_cast<int>(image_width / aspect_ratio),
+            n_sample_paths = samples_per_pixel * image_width * image_height;
 
         cam.initialize(aspect_ratio);
 
+        std::vector<color> frame_buffer{ static_cast<unsigned>(image_height * image_width) };
+
+        for (int i = 0; i < n_sample_paths; ++i) {
+            auto s = random_double(), t = random_double();
+            ray r = cam.get_ray(s, t);
+            frame_buffer[static_cast<int>(image_height * t) * image_width + static_cast<int>(image_width * s)]
+                += ray_color(r, max_depth);
+        }
+
         std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
 
-        int sqrt_spp = int(sqrt(samples_per_pixel));
-        for (int j = 0; j < image_height; ++j) {
-            std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
-
-            for (int i = 0; i < image_width; ++i) {
-                color pixel_color(0,0,0);
-                for (int s_j = 0; s_j < sqrt_spp; ++s_j) {
-                    auto t = (j + (s_j + random_double()) / sqrt_spp) / (image_height-1);
-                    for (int s_i = 0; s_i < sqrt_spp; ++s_i) {
-                        auto s = (i + (s_i + random_double()) / sqrt_spp) / (image_width-1);
-                        ray r = cam.get_ray(s, t);
-                        pixel_color += ray_color(r, max_depth);
-                    }
-                }
-                write_color(std::cout, pixel_color, samples_per_pixel);
-            }
-        }
+        for (const auto& p : frame_buffer)
+            write_color(std::cout, p, samples_per_pixel);
 
         std::clog << "\rDone.                 \n";
     }
