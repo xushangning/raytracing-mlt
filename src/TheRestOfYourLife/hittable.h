@@ -48,7 +48,7 @@ class hittable {
         return 0.0;
     }
 
-    virtual vec3 random(const vec3& o) const {
+    virtual vec3 random(const vec3& o, metropolis_sampler&) const {
         return vec3(1,0,0);
     }
 };

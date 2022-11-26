@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <random>
 
 using std::sqrt;
 using std::fabs;
@@ -177,5 +178,97 @@ inline vec3 random_cosine_direction() {
     return vec3(x, y, z);
 }
 
+
+class metropolis_sampler
+{
+    std::mt19937 e;
+    std::uniform_real_distribution<double> u{ 0. };
+
+    struct primary_sample
+    {
+        int iteration, last_large_step_iteration;
+        double v, backup;
+    };
+
+    std::vector<primary_sample> samples;
+    decltype(samples)::size_type index = 0;
+    int iteration = 0;
+    bool is_large_step;
+
+    static constexpr double large_step_probability = .3, stddev = .01;
+
+public:
+    metropolis_sampler(std::mt19937::result_type seed) : e{ seed } {}
+
+    void operator()() noexcept
+    {
+        ++iteration;
+        is_large_step = u(e) <= large_step_probability;
+        index = 0;
+    }
+
+    double get() noexcept
+    {
+        if (index == samples.size())
+            samples.push_back({ iteration, iteration, u(e) });
+        else {
+            auto& sample = samples[index];
+            sample.backup = sample.v;
+
+            if (is_large_step)
+                sample.last_large_step_iteration = iteration;
+            if (sample.iteration < sample.last_large_step_iteration)
+                sample.v = u(e);
+            else {
+                sample.v += std::normal_distribution<double>{ 0., (iteration - sample.iteration)* stddev }(e);
+                sample.v -= std::floor(sample.v);
+            }
+            sample.iteration = iteration;
+        }
+        return samples[index++].v;
+    }
+
+    void accept() const noexcept {}
+
+    void reject() noexcept
+    {
+        for (decltype(index) i = 0; i < index; ++i)
+            samples[i].v = samples[i].backup;
+    }
+
+    double random_double(double min, double max) {
+        return min + (max - min) * get();
+    }
+
+    int random_int(int min, int max) {
+        return static_cast<int>(random_double(min, max + 1));
+    }
+
+    vec3 random_in_unit_disk() noexcept
+    {
+        double r = std::sqrt(get()), theta = 2 * pi * get();
+        return vec3{ r * std::cos(theta), r * std::sin(theta), 0 };
+    }
+
+    vec3 random_cosine_direction() noexcept
+    {
+        auto r1 = get();
+        auto r2 = get();
+
+        auto phi = 2 * pi * r1;
+        auto x = cos(phi) * sqrt(r2);
+        auto y = sin(phi) * sqrt(r2);
+        auto z = sqrt(1 - r2);
+
+        return vec3(x, y, z);
+    }
+
+    vec3 random_unit_vector() noexcept
+    {
+        auto s = get(), t = get(),
+            r = 2 * std::sqrt(s * (1 - s)), phi = 2 * pi * t;
+        return vec3{ r * std::cos(phi), r * std::sin(phi), 1 - 2 * s };
+    }
+};
 
 #endif

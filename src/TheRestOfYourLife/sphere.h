@@ -67,12 +67,12 @@ class sphere : public hittable {
         return  1 / solid_angle;
     }
 
-    vec3 random(const point3& o) const override {
+    vec3 random(const point3& o, metropolis_sampler& sampler) const override {
         vec3 direction = center - o;
         auto distance_squared = direction.length_squared();
         onb uvw;
         uvw.build_from_w(direction);
-        return uvw.local(random_to_sphere(radius, distance_squared));
+        return uvw.local(random_to_sphere(radius, distance_squared, sampler));
     }
 
   public:
@@ -97,9 +97,9 @@ class sphere : public hittable {
         v = theta / pi;
     }
 
-    static vec3 random_to_sphere(double radius, double distance_squared) {
-        auto r1 = random_double();
-        auto r2 = random_double();
+    static vec3 random_to_sphere(double radius, double distance_squared, metropolis_sampler& sampler) {
+        auto r1 = sampler.get();
+        auto r2 = sampler.get();
         auto z = 1 + r2*(sqrt(1-radius*radius/distance_squared) - 1);
 
         auto phi = 2*pi*r1;

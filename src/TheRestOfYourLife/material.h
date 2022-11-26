@@ -19,6 +19,7 @@
 
 class scatter_record {
   public:
+    metropolis_sampler& sampler;
     color attenuation;
     shared_ptr<pdf> pdf_ptr;
     bool skip_pdf;
@@ -80,7 +81,7 @@ class metal : public material {
         srec.skip_pdf = true;
         vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
         srec.skip_pdf_ray =
-            ray(rec.p, reflected + fuzz*random_in_unit_sphere(), r_in.time());
+            ray(rec.p, reflected + fuzz*srec.sampler.random_unit_vector(), r_in.time());
         return true;
     }
 
@@ -107,7 +108,7 @@ class dielectric : public material {
         bool cannot_refract = refraction_ratio * sin_theta > 1.0;
         vec3 direction;
 
-        if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random_double())
+        if (cannot_refract || reflectance(cos_theta, refraction_ratio) > srec.sampler.get())
             direction = reflect(unit_direction, rec.normal);
         else
             direction = refract(unit_direction, rec.normal, refraction_ratio);

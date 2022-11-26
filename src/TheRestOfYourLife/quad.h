@@ -88,8 +88,8 @@ class quad : public hittable {
         return distance_squared / (cosine * area);
     }
 
-    vec3 random(const point3& origin) const override {
-        auto p = Q + (random_double() * u) + (random_double() * v);
+    vec3 random(const point3& origin, metropolis_sampler& sampler) const override {
+        auto p = Q + (sampler.get() * u) + (sampler.get() * v);
         return p - origin;
     }
 

@@ -60,9 +60,9 @@ class hittable_list : public hittable {
         return sum;
     }
 
-    vec3 random(const vec3 &o) const override {
+    vec3 random(const vec3 &o, metropolis_sampler& sampler) const override {
         auto int_size = static_cast<int>(objects.size());
-        return objects[random_int(0, int_size-1)]->random(o);
+        return objects[sampler.random_int(0, int_size-1)]->random(o, sampler);
     }
 
   public:

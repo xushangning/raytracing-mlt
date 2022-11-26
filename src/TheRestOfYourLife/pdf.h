@@ -22,7 +22,7 @@ class pdf {
     virtual ~pdf() {}
 
     virtual double value(const vec3& direction) const = 0;
-    virtual vec3 generate() const = 0;
+    virtual vec3 generate(metropolis_sampler& sampler) const = 0;
 };
 
 
@@ -35,8 +35,8 @@ class cosine_pdf : public pdf {
         return fmax(0, cosine_theta/pi);
     }
 
-    vec3 generate() const override {
-        return uvw.local(random_cosine_direction());
+    vec3 generate(metropolis_sampler& sampler) const override {
+        return uvw.local(sampler.random_cosine_direction());
     }
 
   public:
@@ -52,8 +52,8 @@ class sphere_pdf : public pdf {
         return 1/ (4 * pi);
     }
 
-    vec3 generate() const override {
-        return random_unit_vector();
+    vec3 generate(metropolis_sampler& sampler) const override {
+        return sampler.random_unit_vector();
     }
 };
 
@@ -68,8 +68,8 @@ class hittable_pdf : public pdf {
         return objects.pdf_value(origin, direction);
     }
 
-    vec3 generate() const override {
-        return objects.random(origin);
+    vec3 generate(metropolis_sampler& sampler) const override {
+        return objects.random(origin, sampler);
     }
 
   public:
@@ -89,11 +89,11 @@ class mixture_pdf : public pdf {
         return 0.5 * p[0]->value(direction) + 0.5 *p[1]->value(direction);
     }
 
-    vec3 generate() const override {
-        if (random_double() < 0.5)
-            return p[0]->generate();
+    vec3 generate(metropolis_sampler& sampler) const override {
+        if (sampler.get() < 0.5)
+            return p[0]->generate(sampler);
         else
-            return p[1]->generate();
+            return p[1]->generate(sampler);
     }
 
   public:
